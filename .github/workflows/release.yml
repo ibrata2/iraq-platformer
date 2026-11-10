@@ -1,0 +1,61 @@
+name: Publish verified Windows release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Final release version, for example 1.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build verified installer
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
+            throw 'Provide a final version in major.minor.patch format.'
+          }
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE) { throw 'Inno Setup installation failed.' }
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          ./BuildInstaller.ps1 -Version $env:RELEASE_VERSION -Compiler $compiler
+      - name: Test installation and removal
+        shell: pwsh
+        run: |
+          $test = Join-Path $env:RUNNER_TEMP ('iraq-game-' + [guid]::NewGuid())
+          $installed = Join-Path $test 'game'
+          $verify = Join-Path $test 'verify'
+          function Run-Checked($program, $arguments) {
+            $run = Start-Process -FilePath $program -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+            if ($run.ExitCode) { throw "Process exited with code $($run.ExitCode)." }
+          }
+          Run-Checked (Resolve-Path 'dist/IraqPlatformer-Setup.exe').Path @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/NOICONS',('/DIR="' + $installed + '"'))
+          $game = Join-Path $installed 'IraqPlatformer.exe'
+          try {
+            Run-Checked $game @('--verify', ('"' + $verify + '"'))
+            $routes = @(Get-Content -LiteralPath (Join-Path $verify 'integrated-routes.txt'))
+            if ($routes.Count -ne 152 -or ($routes | Select-String -Pattern 'FAIL')) {
+              throw 'Installed game failed integrated traversal.'
+            }
+          } finally {
+            Run-Checked (Join-Path $installed 'unins000.exe') @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+          }
+          if (Test-Path -LiteralPath $game) { throw 'Uninstall left the executable behind.' }
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$env:RELEASE_VERSION" 'dist/IraqPlatformer-Setup.exe' --target "$env:GITHUB_SHA" --title "رحلة العراق $env:RELEASE_VERSION" --notes "ملف تنصيب رحلة العراق لويندوز 64-بت."
+          if ($LASTEXITCODE) { throw 'GitHub release creation failed.' }
