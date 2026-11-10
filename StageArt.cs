@@ -82,10 +82,7 @@ internal static class StageArt
                 DrawTree(g, x, height, scenery == Scenery.Orchard, scenery == Scenery.Marsh);
             else if (night)
             {
-                g.FillRectangle(Brushes.DarkSlateBlue, x, 395 - height / 2, 88, height / 2);
-                using var glow = new SolidBrush(Color.FromArgb(45, Color.Orange));
-                g.FillEllipse(glow, x + 22, 357 - height / 2, 44, 46);
-                g.FillEllipse(Brushes.Orange, x + 38, 374 - height / 2, 12, 15);
+                DrawHalabjaTerrace(g, x, height, i);
             }
         }
         if (stage.Province is 13 or 14 or 15)
@@ -103,6 +100,35 @@ internal static class StageArt
                 }
             }
         }
+    }
+
+    private static void DrawHalabjaTerrace(Graphics g, int x, int height, int plot)
+    {
+        int terrace = 388 - height / 3;
+        using var stone = new SolidBrush(Color.FromArgb(55, 61, 100));
+        using var lip = new SolidBrush(Color.FromArgb(94, 104, 130));
+        g.FillRectangle(stone, x, terrace, 112, 401 - terrace);
+        g.FillRectangle(lip, x, terrace, 112, 4);
+        for (int row = terrace + 13; row < 401; row += 12)
+            g.DrawLine(Pens.DarkSlateBlue, x, row, x + 112, row);
+
+        int stem = x + 33, crown = terrace - 53;
+        using var bark = new Pen(Color.FromArgb(86, 58, 69), 5);
+        g.DrawLine(bark, stem, terrace, stem + 5, crown + 26);
+        g.DrawLine(bark, stem + 4, crown + 30, stem - 10, crown + 15);
+        using var leaves = new SolidBrush(Color.FromArgb(34, 73, 74));
+        using var canopy = new SolidBrush(Color.FromArgb(45, 94, 83));
+        g.FillEllipse(leaves, x + 9, crown + 5, 54, 32);
+        g.FillEllipse(canopy, x + 14, crown, 45, 27);
+        for (int fruit = 0; fruit < 5; fruit++)
+            g.FillEllipse(Brushes.IndianRed, x + 18 + fruit * 7, crown + 9 + (fruit * 11 + plot * 3) % 16, 5, 6);
+
+        int lamp = x + 86;
+        using var halo = new SolidBrush(Color.FromArgb(45, Color.Orange));
+        g.FillEllipse(halo, lamp - 25, terrace - 56, 50, 50);
+        g.DrawLine(Pens.SaddleBrown, lamp, terrace, lamp, terrace - 30);
+        g.FillEllipse(Brushes.Goldenrod, lamp - 7, terrace - 38, 14, 13);
+        g.FillEllipse(Brushes.LemonChiffon, lamp - 4, terrace - 35, 8, 7);
     }
 
     public static void DrawTerrain(Graphics g, Rectangle tile, float camera, int screenWidth, int province)

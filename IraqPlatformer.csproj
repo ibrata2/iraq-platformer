@@ -9,6 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Content/LevelMaps.md" />
+    <EmbeddedResource Include="assets/halabja-valley.png" LogicalName="HalabjaValley" />
+    <EmbeddedResource Include="assets/lantern-giant.png" LogicalName="LanternGiant" />
     <EmbeddedResource Include="ArtReference/maps-*.png">
       <LogicalName>%(Filename)</LogicalName>
     </EmbeddedResource>

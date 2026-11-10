@@ -602,9 +602,7 @@ internal sealed class MovementLab : Form
         float camera = Math.Clamp(x - 360, 0, Math.Max(0, layout.Width - ClientSize.Width));
         bool baghdadPreview = stages[progress.Stage].Province == 1;
         if (baghdadPreview) BaghdadPreviewArt.DrawBackground(g, ClientSize.Width, camera, stages[progress.Stage].Number);
-        else if (stages[progress.Stage].Province < 19)
-            RegionalReferenceArt.Draw(g, ClientSize, stages[progress.Stage], camera);
-        else StageArt.Draw(g, ClientRectangle, stages[progress.Stage], camera);
+        else RegionalReferenceArt.Draw(g, ClientSize, stages[progress.Stage], camera);
         g.TranslateTransform(-camera, 0);
         foreach (Rectangle tile in layout.Platforms)
         {

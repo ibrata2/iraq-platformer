@@ -4,6 +4,7 @@ namespace IraqPlatformer;
 
 internal static class RegionalReferenceArt
 {
+    private static readonly Lazy<Bitmap> Valley = new(() => Load("HalabjaValley"));
     private static readonly Lazy<Bitmap>[] Boards =
     [
         new(() => Load("maps-01-06")),
@@ -21,6 +22,15 @@ internal static class RegionalReferenceArt
 
     public static void Draw(Graphics graphics, Size viewport, Stage stage, float camera)
     {
+        if (stage.Province == 19)
+        {
+            Bitmap valleyArt = Valley.Value;
+            float visibleWidth = valleyArt.Height * viewport.Width / (float)viewport.Height;
+            float scroll = Math.Clamp((stage.Number - 1) / 12f + camera / 21000f, 0, 1);
+            var view = new RectangleF((valleyArt.Width - visibleWidth) * scroll, 0, visibleWidth, valleyArt.Height);
+            graphics.DrawImage(valleyArt, new RectangleF(0, 0, viewport.Width, viewport.Height), view, GraphicsUnit.Pixel);
+            return;
+        }
         int index = stage.Province - 1;
         Bitmap board = Boards[index / 6].Value;
         int panel = index % 6;
@@ -34,7 +44,21 @@ internal static class RegionalReferenceArt
             top + panelHeight * .065f, panelWidth * .51f, panelHeight * .25f);
         var previous = graphics.InterpolationMode;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        graphics.DrawImage(board, new RectangleF(0, 0, viewport.Width, 440), source, GraphicsUnit.Pixel);
+        // Keep the panorama low in the frame instead of stretching the narrow board vertically.
+        float height = Math.Clamp(viewport.Width * source.Height / source.Width * 1.35f, 185, 310);
+        float horizon = 440 - height;
+        Color skyTop = Color.FromArgb(101, 154, 203);
+        Color skyBottom = Color.FromArgb(167, 203, 224);
+        using var sky = new LinearGradientBrush(new Rectangle(0, 0, viewport.Width, 440),
+            skyTop, skyBottom, 90);
+        graphics.FillRectangle(sky, 0, 0, viewport.Width, 440);
+        graphics.DrawImage(board, new RectangleF(0, horizon, viewport.Width, height), source, GraphicsUnit.Pixel);
+        var fadeArea = new RectangleF(0, horizon, viewport.Width, 48);
+        using var fade = new LinearGradientBrush(fadeArea, Color.FromArgb(
+            (int)(skyTop.R + (skyBottom.R - skyTop.R) * horizon / 440),
+            (int)(skyTop.G + (skyBottom.G - skyTop.G) * horizon / 440),
+            (int)(skyTop.B + (skyBottom.B - skyTop.B) * horizon / 440)), Color.Transparent, 90);
+        graphics.FillRectangle(fade, fadeArea);
         using var valley = new LinearGradientBrush(new Rectangle(0, 440, viewport.Width, 80),
             Color.FromArgb(53, 106, 120), Color.FromArgb(25, 53, 65), 90);
         graphics.FillRectangle(valley, 0, 440, viewport.Width, 80);
@@ -50,9 +74,9 @@ internal static class RegionalReferenceArt
         Bitmap art = Boards[index / 6].Value;
         float w = art.Width / 2f, h = art.Height / 3f;
         float sampleLeft = (panel % 2 + .016f) * w;
-        float sampleTop = (panel / 2 + .902f) * h;
+        float sampleTop = (panel / 2 + .881f) * h;
         float sampleWidth = w * .064f;
-        float sampleHeight = h * .060f;
+        float sampleHeight = h * .038f;
         var state = g.Save();
         g.InterpolationMode = InterpolationMode.NearestNeighbor;
         int stripHeight = tile.Height >= 30 ? 26 : tile.Height;
@@ -69,6 +93,7 @@ internal static class RegionalReferenceArt
         Color rim = province is 3 or 6 or 9 or 12 ? Color.FromArgb(211, 177, 112) :
             province == 7 ? Color.Goldenrod : Color.FromArgb(145, 170, 65);
         using var edge = new Pen(rim, 3);
+        g.DrawLine(Pens.DarkOliveGreen, left, tile.Top + 4, right, tile.Top + 4);
         g.DrawLine(edge, left, tile.Top + 1, right, tile.Top + 1);
         g.Restore(state);
     }

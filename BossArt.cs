@@ -2,8 +2,21 @@ namespace IraqPlatformer;
 
 internal static class BossArt
 {
+    private static readonly Lazy<Bitmap> Giant = new(() =>
+    {
+        using var stream = typeof(BossArt).Assembly.GetManifestResourceStream("LanternGiant")
+            ?? throw new InvalidDataException("Missing Lantern Giant sprite.");
+        using var source = Image.FromStream(stream);
+        return new Bitmap(source);
+    });
+
     public static void Draw(Graphics g, BossProfile profile, int province, BossFrame frame, bool exposed)
     {
+        if (profile.Move == BossMove.Lamps)
+        {
+            DrawLanternGiant(g, frame.Body, exposed);
+            return;
+        }
         var state = g.Save();
         g.TranslateTransform(frame.Body.Left, frame.Body.Top);
         using var skin = new SolidBrush(profile.Color);
@@ -42,11 +55,6 @@ internal static class BossArt
                     for (int i = 0; i < 3; i++) g.DrawArc(tentacle, i * 16, 35, 25, 23, 0, 200);
                 }
                 break;
-            case BossMove.Lamps:
-                g.FillPolygon(shade, (Point[])[new(3, 63), new(11, 16), new(32, 0), new(53, 16), new(63, 63)]);
-                g.FillRectangle(skin, 10, 30, 44, 25);
-                g.FillEllipse(exposed ? Brushes.Gold : Brushes.DarkSlateBlue, 23, 36, 18, 21);
-                break;
             default:
                 g.FillEllipse(shade, 6, 36, 55, 28);
                 g.FillEllipse(skin, 3, 15, 56, 40);
@@ -59,5 +67,18 @@ internal static class BossArt
         if (exposed)
             g.DrawEllipse(Pens.Gold, 0, 0, 63, 63);
         g.Restore(state);
+    }
+    private static void DrawLanternGiant(Graphics g, RectangleF body, bool exposed)
+    {
+        Bitmap sprite = Giant.Value;
+        const float height = 92;
+        float width = height * sprite.Width / sprite.Height;
+        var bounds = Rectangle.Round(new RectangleF(body.X + (body.Width - width) / 2, body.Bottom - height, width, height));
+        using var colors = new System.Drawing.Imaging.ImageAttributes();
+        if (!exposed)
+            colors.SetColorMatrix(new System.Drawing.Imaging.ColorMatrix { Matrix00 = .64f, Matrix11 = .65f, Matrix22 = .80f });
+        g.DrawImage(sprite, bounds, 0, 0, sprite.Width, sprite.Height, GraphicsUnit.Pixel, colors);
+        if (exposed)
+            g.DrawEllipse(Pens.Gold, bounds.X + width * .34f, bounds.Y + 33, width * .24f, 24);
     }
 }

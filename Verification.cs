@@ -39,15 +39,18 @@ internal static class Verification
         }
 
         int[] regionalHero = [1, 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 6, 7, 8, 9];
-        foreach (int index in Enumerable.Range(0, 19).Select(province => province * 8).Concat(Enumerable.Range(0, 19).Select(province => province * 8 + 7)).Append(3))
+        for (int index = 0; index < stages.Count; index++)
         {
             using var game = new MovementLab(index == 7 ? 2 : regionalHero[index / 8], index == 7 ? "باشا بغداد" : stages[index].ProvinceName, new Progress(Stage: index),
                 stages, _ => { }, silent: true);
             if (stages[index].Boss is not null) game.PositionArenaPreview();
             using var frame = new Bitmap(game.Width, game.Height);
             game.DrawToBitmap(frame, new Rectangle(Point.Empty, frame.Size));
-            frame.Save(Path.Combine(directory, $"stage-{stages[index].Province}-{stages[index].Number}.png"),
-                System.Drawing.Imaging.ImageFormat.Png);
+            Color topBar = frame.GetPixel(frame.Width / 2, 49);
+            Require(topBar.ToArgb() == Color.MidnightBlue.ToArgb(), $"Stage {index + 1} render");
+            if (stages[index].Number is 1 or 8 || index == 3)
+                frame.Save(Path.Combine(directory, $"stage-{stages[index].Province}-{stages[index].Number}.png"),
+                    System.Drawing.Imaging.ImageFormat.Png);
         }
 
         using (var sheet = new Bitmap(1000, 760))
